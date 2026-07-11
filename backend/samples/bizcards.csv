@@ -1,0 +1,13 @@
+customer_id,name,role,email,phone
+emp_01,Ava Stone,Account Executive,ava@acme.example,+1-555-0101
+emp_02,Ben Reyes,Solutions Architect,ben@acme.example,+1-555-0102
+emp_03,Cara Lin,Support Lead,cara@acme.example,+1-555-0103
+emp_04,Dan Okafor,Sales Director,dan@acme.example,+1-555-0104
+emp_05,Eli Novak,Consultant,eli@acme.example,+1-555-0105
+emp_06,Fay Adams,Consultant,fay@acme.example,+1-555-0106
+emp_07,Gus Marsh,Engineer,gus@acme.example,+1-555-0107
+emp_08,Hana Kim,Engineer,hana@acme.example,+1-555-0108
+emp_09,Ian Petrov,PM,ian@acme.example,+1-555-0109
+emp_10,Joy Umeh,Designer,joy@acme.example,+1-555-0110
+emp_11,Kai Wong,Analyst,kai@acme.example,+1-555-0111
+emp_12,Lea Fontaine,Marketing,lea@acme.example,+1-555-0112

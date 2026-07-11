@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- NextGen-CCM backend configuration.
+     Non-secret settings live here; secrets (API keys) live in .env — never in this file. -->
+<config>
+  <server>
+    <!-- Port the API listens on -->
+    <port>3000</port>
+    <!-- CORS: origin allowed to call the API. Use the frontend's URL in production
+         (e.g. https://ccm.example.com); "*" allows any origin (dev only). -->
+    <corsOrigin>*</corsOrigin>
+  </server>
+
+  <ai>
+    <!-- LLM gateway (OpenAI-compatible). API key comes from .env: OPENROUTER_API_KEY -->
+    <provider>openrouter</provider>
+    <baseUrl>https://openrouter.ai/api/v1/chat/completions</baseUrl>
+    <model>anthropic/claude-sonnet-4.5</model>
+    <maxTokens>4096</maxTokens>
+  </ai>
+
+  <storage>
+    <!-- Paths relative to the backend directory -->
+    <dataDir>data</dataDir>
+    <outDir>out</outDir>
+    <archiveDir>archive</archiveDir>
+    <samplesDir>samples</samplesDir>
+  </storage>
+
+  <logging>
+    <!-- Initial log level: trace | debug | info | warn | error (runtime-changeable via API, FR-6.4) -->
+    <level>info</level>
+  </logging>
+</config>

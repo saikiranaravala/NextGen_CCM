@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NextGen-CCM — Designer</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>NextGen-CCM</h1>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a class="active" href="/designer.html">Designer</a>
+    <a href="/author.html">Content Author</a>
+  </nav>
+</header>
+<main>
+  <div class="row">
+    <div class="card">
+      <h2>Templates (FR-1.1 / FR-1.4)</h2>
+      <table id="tplTable"><thead><tr><th>ID</th><th>Name</th><th>App</th><th>Version</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Edit Template <span class="muted">locked blocks (FR-1.3) are enforced server-side; saving creates a new draft version (FR-1.4/1.5)</span></h2>
+    <label>Template definition (JSON)</label>
+    <textarea id="tplJson" style="min-height:280px;font-family:Consolas,monospace"></textarea>
+    <label>Sample payload for preview</label>
+    <textarea id="previewPayload">{ "customer_id": "cust_001", "name": "Jane Doe", "state": "CA", "invoice_number": "INV-2026-101", "due_date": "2026-08-01", "amount": "299.00", "currency": "USD", "product_code": "GOLD-01" }</textarea>
+    <p>
+      <button onclick="saveTpl()">Save (new draft version)</button>
+      <button class="secondary" onclick="saveTpl(true)">Save with designer unlock</button>
+      <button class="secondary" onclick="preview()">Preview PDF (DRAFT watermark)</button>
+      <button class="secondary" onclick="approve()">Approve (FR-1.5)</button>
+    </p>
+    <label>Conversational AI edit (FR-7.4) — e.g. "make the greeting bold and move the promo above the body"</label>
+    <div class="row">
+      <div style="flex:3"><input id="aiInstruction" placeholder="Describe the change in plain language"></div>
+      <div style="flex:1"><button class="secondary" id="aiEditBtn" onclick="aiEdit()">✨ AI Edit</button></div>
+    </div>
+    <pre id="result">Select a template above, edit, save, preview, approve.</pre>
+  </div>
+</main>
+<script src="config.js"></script>
+<script>
+const BASE = window.CCM_API_BASE;
+const api = (p, opts) => fetch(BASE + '/api/v1' + p, opts).then(r => r.json());
+const post = (p, body, q = '') => fetch(BASE + '/api/v1' + p + q, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
+let currentId = null;
+
+async function load() {
+  const tpls = await api('/templates');
+  document.querySelector('#tplTable tbody').innerHTML = tpls.map(t =>
+    `<tr><td>${t.id}</td><td>${t.name}</td><td>${t.applicationId}</td><td>v${t.version}</td><td><span class="badge ${t.status === 'approved' ? 'ok' : ''}">${t.status}</span></td><td><button class="secondary" onclick="edit('${t.id}')">Edit</button></td></tr>`).join('');
+}
+async function edit(id) {
+  const tpl = await api('/templates/' + id);
+  currentId = id;
+  document.getElementById('tplJson').value = JSON.stringify(tpl, null, 2);
+}
+async function saveTpl(unlock) {
+  let tpl;
+  try { tpl = JSON.parse(document.getElementById('tplJson').value); }
+  catch { return show('Invalid template JSON'); }
+  const res = await post('/templates', tpl, unlock ? '?unlock=1' : '');
+  currentId = tpl.id;
+  show(JSON.stringify(res, null, 2));
+  load();
+}
+async function preview() {
+  if (!currentId) return show('Select a template first');
+  let payload;
+  try { payload = JSON.parse(document.getElementById('previewPayload').value); }
+  catch { return show('Invalid payload JSON'); }
+  const res = await post(`/templates/${currentId}/preview`, payload);
+  if (res.file) window.open(BASE + res.file, '_blank');
+  show(JSON.stringify({ file: res.file }, null, 2));
+}
+async function approve() {
+  if (!currentId) return show('Select a template first');
+  const res = await post(`/templates/${currentId}/approve`, { approver: 'designer-demo' });
+  show(JSON.stringify(res, null, 2));
+  load();
+}
+async function aiEdit() {
+  if (!currentId) return show('Select a template first');
+  const instruction = document.getElementById('aiInstruction').value.trim();
+  if (!instruction) return show('Type an instruction first');
+  const btn = document.getElementById('aiEditBtn');
+  btn.disabled = true; btn.textContent = '… editing';
+  try {
+    const res = await post('/ai/template-edit', { templateId: currentId, instruction });
+    if (res.error) return show('AI error: ' + res.error);
+    document.getElementById('tplJson').value = JSON.stringify(res.template, null, 2);
+    show('AI: ' + res.summary +
+      (res.saved ? '\nSaved as new draft version v' + res.template.version + ' — approve to publish.' : '\nNo changes saved.') +
+      (res.skipped.length ? '\nSkipped (locked/invalid): ' + res.skipped.map(s => s.blockId + ' (' + s.reason + ')').join(', ') : ''));
+    load();
+  } finally { btn.disabled = false; btn.textContent = '✨ AI Edit'; }
+}
+
+function show(t) { document.getElementById('result').textContent = t; }
+load();
+</script>
+</body>
+</html>

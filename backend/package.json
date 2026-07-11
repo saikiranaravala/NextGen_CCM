@@ -1,0 +1,19 @@
+{
+  "name": "nextgen-ccm-backend",
+  "version": "0.2.0",
+  "description": "NextGen-CCM backend — composition, orchestration, and delivery API (see ../PRD.md)",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "smoke": "node scripts/smoke-test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "pdfkit": "^0.15.0"
+  }
+}

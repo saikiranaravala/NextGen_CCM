@@ -1,0 +1,5 @@
+{
+  "GOLD-01": { "title": "Gold Cloud Plan", "promo": "Upgrade to Platinum for 10% off until September." },
+  "SILV-01": { "title": "Silver Cloud Plan", "promo": "Add Premium Analytics for $9/mo." },
+  "BASE-01": { "title": "Basic Plan" }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "nextgen-ccm-video-render",
+  "version": "1.0.0",
+  "description": "Renders the NextGen-CCM tutorial film to MP4 (headless Edge/Chrome + ffmpeg) with a generated soundtrack",
+  "private": true,
+  "scripts": {
+    "music": "node gen-music.js",
+    "record": "node record.js",
+    "build": "node gen-music.js && node record.js"
+  },
+  "dependencies": {
+    "puppeteer-core": "^23.0.0",
+    "puppeteer-screen-recorder": "^3.0.6",
+    "ffmpeg-static": "^5.2.0"
+  }
+}

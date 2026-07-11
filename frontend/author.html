@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NextGen-CCM — Content Author</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>NextGen-CCM</h1>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/designer.html">Designer</a>
+    <a class="active" href="/author.html">Content Author</a>
+  </nav>
+</header>
+<main>
+  <div class="card">
+    <h2>Business Content Author Studio (FR-1.9)</h2>
+    <p class="muted">Compose a customer letter inside a governed shell. Locked blocks are shown grey and cannot be edited. Use 🎤 Dictate (Chrome/Edge) for dictation letters.</p>
+    <div class="row">
+      <div>
+        <label>Letter shell</label>
+        <select id="shell"></select>
+        <label>Customer name</label>
+        <input id="custName" value="Jane Doe">
+        <label>Customer ID</label>
+        <input id="custId" value="cust_001">
+        <label>Agent name</label>
+        <input id="agent" value="Alex Morgan">
+        <label>Recipient email</label>
+        <input id="email" value="jane@example.com">
+      </div>
+      <div>
+        <label>Approved paragraph library (FR-1.5) — click to insert</label>
+        <div id="paras"></div>
+      </div>
+    </div>
+    <div id="shellView"></div>
+    <label>AI drafting (FR-7.1) — describe the intent, grounded in approved paragraphs only</label>
+    <div class="row">
+      <div style="flex:3"><input id="aiIntent" placeholder="e.g. apologize for the billing error and offer a goodwill credit"></div>
+      <div style="flex:1"><button class="secondary" id="aiBtn" onclick="aiDraft()">✨ AI Draft</button></div>
+    </div>
+    <label>Letter body</label>
+    <textarea id="body" placeholder="Type or dictate the letter body…"></textarea>
+    <p>
+      <button class="secondary" id="micBtn" onclick="dictate()">🎤 Dictate</button>
+      <button onclick="send()">Send letter (governed dispatch)</button>
+    </p>
+    <pre id="result">—</pre>
+  </div>
+</main>
+<script src="config.js"></script>
+<script>
+const BASE = window.CCM_API_BASE;
+const api = (p, opts) => fetch(BASE + '/api/v1' + p, opts).then(r => r.json());
+const post = (p, body) => fetch(BASE + '/api/v1' + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(r => r.json());
+let recognizing = false, rec = null;
+
+async function load() {
+  const tpls = (await api('/templates')).filter(t => t.blocks.some(b => b.editable));
+  document.getElementById('shell').innerHTML = tpls.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  document.getElementById('shell').value = 'tpl_letter_shell';
+  document.getElementById('shell').onchange = renderShell;
+  const paras = await api('/paragraphs?applicationId=app_letters');
+  document.getElementById('paras').innerHTML = paras.map(p =>
+    `<div class="editable" style="cursor:pointer" onclick="insertPara(this.dataset.text)" data-text="${p.text.replace(/"/g, '&quot;')}"><b>${p.title}</b><br><span class="muted">${p.text}</span></div>`).join('');
+  renderShell();
+}
+async function renderShell() {
+  const tpl = await api('/templates/' + document.getElementById('shell').value);
+  document.getElementById('shellView').innerHTML = tpl.blocks.map(b =>
+    `<div class="${b.locked ? 'locked' : 'editable'}">${b.locked ? '🔒 ' : '✏️ '}${(b.text ?? '').replace(/</g, '&lt;')}</div>`).join('');
+}
+function insertPara(text) {
+  const ta = document.getElementById('body');
+  ta.value = (ta.value ? ta.value + '\n\n' : '') + text;
+}
+function dictate() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return alert('Speech recognition not supported in this browser — use Chrome or Edge.');
+  if (recognizing) { rec.stop(); return; }
+  rec = new SR();
+  rec.continuous = true; rec.interimResults = false; rec.lang = 'en-US';
+  rec.onresult = (e) => {
+    const text = Array.from(e.results).slice(e.resultIndex).map(r => r[0].transcript).join(' ');
+    insertPara(text.trim());
+  };
+  rec.onend = () => { recognizing = false; document.getElementById('micBtn').textContent = '🎤 Dictate'; };
+  rec.start(); recognizing = true;
+  document.getElementById('micBtn').textContent = '⏹ Stop dictation';
+}
+async function aiDraft() {
+  const intent = document.getElementById('aiIntent').value.trim();
+  if (!intent) return alert('Describe the intent of the letter first.');
+  const btn = document.getElementById('aiBtn');
+  btn.disabled = true; btn.textContent = '… drafting';
+  try {
+    const res = await post('/ai/draft-letter', {
+      intent,
+      customerName: document.getElementById('custName').value,
+      applicationId: 'app_letters',
+    });
+    if (res.error) return document.getElementById('result').textContent = 'AI error: ' + res.error;
+    document.getElementById('body').value = res.draft;
+    document.getElementById('result').textContent = 'AI draft inserted (model: ' + res.model + ', grounded in: ' + res.groundedIn.join(', ') + '). Review and edit before sending.';
+  } finally { btn.disabled = false; btn.textContent = '✨ AI Draft'; }
+}
+
+async function send() {
+  const res = await post('/communications/on-demand', {
+    template_id: document.getElementById('shell').value,
+    kind: 'author-letter',
+    recipient: {
+      customer_id: document.getElementById('custId').value,
+      email: document.getElementById('email').value,
+      preferences: { preferred_channel: 'EMAIL', fallback_channel: 'PRINT' },
+    },
+    payload: {
+      customer_id: document.getElementById('custId').value,
+      name: document.getElementById('custName').value,
+      agent_name: document.getElementById('agent').value,
+      letter_body: document.getElementById('body').value,
+    },
+  });
+  document.getElementById('result').textContent = JSON.stringify(res, null, 2) + '\nAudit: ' + (res.audit_trail_url ?? '');
+}
+load();
+</script>
+</body>
+</html>

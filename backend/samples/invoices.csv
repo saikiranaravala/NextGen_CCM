@@ -1,0 +1,11 @@
+customer_id,name,state,invoice_number,due_date,amount,currency,product_code
+cust_001,jane doe,CA,INV-2026-001,2026-08-01,299.00,USD,GOLD-01
+cust_002,JOHN SMITH,NY,INV-2026-002,2026-08-01,149.00,USD,SILV-01
+cust_003,maria garcia,TX,INV-2026-003,2026-08-02,99.00,USD,BASE-01
+cust_004,wei chen,CA,INV-2026-004,2026-08-02,299.00,USD,GOLD-01
+cust_005,amit patel,FL,INV-2026-005,2026-08-03,149.00,USD,SILV-01
+cust_006,sara jones,WA,INV-2026-006,2026-08-03,99.00,USD,BASE-01
+cust_007,liam brown,CA,INV-2026-007,2026-08-04,299.00,USD,GOLD-01
+cust_008,emma wilson,IL,INV-2026-008,2026-08-04,149.00,USD,SILV-01
+cust_009,noah davis,GA,INV-2026-009,2026-08-05,99.00,USD,BASE-01
+cust_010,olivia miller,CA,INV-2026-010,2026-08-05,299.00,USD,GOLD-01

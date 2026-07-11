@@ -1,0 +1,12 @@
+{
+  "name": "nextgen-ccm-frontend",
+  "version": "0.2.0",
+  "description": "NextGen-CCM web UI (Dashboard, Designer, Content Author) — static files, deploy behind any web server",
+  "type": "module",
+  "scripts": {
+    "start": "node serve.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

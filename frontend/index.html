@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NextGen-CCM — Dashboard</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <h1>NextGen-CCM</h1>
+  <nav>
+    <a class="active" href="/">Dashboard</a>
+    <a href="/designer.html">Designer</a>
+    <a href="/author.html">Content Author</a>
+  </nav>
+</header>
+<main>
+  <div class="row">
+    <div class="card">
+      <h2>Send On-Demand Communication (FR-3.2)</h2>
+      <label>Template</label>
+      <select id="odTemplate"></select>
+      <label>Recipient email (put "bounce" in it to demo failover FR-2.1)</label>
+      <input id="odEmail" value="jane@example.com">
+      <label>Phone</label>
+      <input id="odPhone" value="+15550101">
+      <label>Preferred / fallback channel</label>
+      <div class="row">
+        <div><select id="odPreferred"><option>EMAIL</option><option>SMS</option><option>WHATSAPP</option><option>PRINT</option></select></div>
+        <div><select id="odFallback"><option>SMS</option><option>EMAIL</option><option>WHATSAPP</option><option>PRINT</option></select></div>
+      </div>
+      <label>Payload (JSON)</label>
+      <textarea id="odPayload">{ "customer_id": "cust_001", "name": "Jane Doe", "state": "CA", "invoice_number": "INV-2026-101", "due_date": "2026-08-01", "amount": "299.00", "currency": "USD", "product_code": "GOLD-01" }</textarea>
+      <label>Idempotency key (resend with same key to demo FR-2.3)</label>
+      <input id="odKey" value="">
+      <p><button onclick="sendOnDemand()">Send</button></p>
+      <pre id="odResult">—</pre>
+    </div>
+    <div class="card">
+      <h2>Run Batch (FR-3.1)</h2>
+      <label>Template</label>
+      <select id="bTemplate"></select>
+      <label>Driver file (in samples/)</label>
+      <select id="bDriver"><option>invoices.csv</option><option>bizcards.csv</option></select>
+      <label>Report fields (comma-separated, FR-3.5)</label>
+      <input id="bFields" value="customer_id,name,invoice_number">
+      <p><button onclick="runBatch()">Run batch</button></p>
+      <pre id="bResult">—</pre>
+      <h2>Selective Reprint (FR-3.6)</h2>
+      <label>Job ID</label><input id="rJob">
+      <label>Record indexes (e.g. 2,5)</label><input id="rRecords" value="0">
+      <p><button onclick="reprint()">Reprint</button></p>
+      <pre id="rResult">—</pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Log Level (FR-6.4) <span class="muted">runtime, no restart</span></h2>
+    <div class="row">
+      <div><select id="logLevel"><option>trace</option><option>debug</option><option selected>info</option><option>warn</option><option>error</option></select></div>
+      <div><input id="logScope" placeholder="scope (blank = global, or e.g. job:job_abc)"></div>
+      <div><button onclick="setLog()">Apply</button></div>
+    </div>
+    <pre id="logResult">—</pre>
+  </div>
+
+  <div class="card">
+    <h2>Track &amp; Trace (FR-6.1) — latest transactions</h2>
+    <p><button class="secondary" onclick="loadTx()">Refresh</button></p>
+    <table id="txTable"><thead><tr><th>Transaction</th><th>Kind</th><th>Template</th><th>Status</th><th>Delivered via</th><th>Lifecycle</th><th>Ledger (FR-6.2)</th></tr></thead><tbody></tbody></table>
+  </div>
+</main>
+<script src="config.js"></script>
+<script>
+const BASE = window.CCM_API_BASE;
+const api = (p, opts) => fetch(BASE + '/api/v1' + p, opts).then(r => r.json());
+const post = (p, body) => api(p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+async function init() {
+  const tpls = await api('/templates');
+  for (const sel of ['odTemplate', 'bTemplate']) {
+    document.getElementById(sel).innerHTML = tpls.map(t => `<option value="${t.id}">${t.name} (v${t.version}, ${t.status})</option>`).join('');
+  }
+  document.getElementById('bTemplate').value = 'tpl_invoice';
+  loadTx();
+}
+
+async function sendOnDemand() {
+  let payload;
+  try { payload = JSON.parse(document.getElementById('odPayload').value); }
+  catch { return document.getElementById('odResult').textContent = 'Invalid payload JSON'; }
+  const body = {
+    template_id: document.getElementById('odTemplate').value,
+    idempotency_key: document.getElementById('odKey').value || undefined,
+    recipient: {
+      customer_id: payload.customer_id,
+      email: document.getElementById('odEmail').value,
+      phone: document.getElementById('odPhone').value,
+      preferences: { preferred_channel: document.getElementById('odPreferred').value, fallback_channel: document.getElementById('odFallback').value },
+    },
+    payload,
+  };
+  const res = await post('/communications/on-demand', body);
+  document.getElementById('odResult').textContent = JSON.stringify(res, null, 2);
+  loadTx();
+}
+
+async function runBatch() {
+  const res = await post('/batch', {
+    templateId: document.getElementById('bTemplate').value,
+    driverFile: document.getElementById('bDriver').value,
+    reportFields: document.getElementById('bFields').value.split(',').map(s => s.trim()).filter(Boolean),
+  });
+  document.getElementById('bResult').textContent = JSON.stringify(res.job ?? res, null, 2);
+  if (res.job) document.getElementById('rJob').value = res.job.id;
+  loadTx();
+}
+
+async function reprint() {
+  const res = await post(`/batch/${document.getElementById('rJob').value}/reprint`, {
+    recordIndexes: document.getElementById('rRecords').value.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n)),
+  });
+  document.getElementById('rResult').textContent = JSON.stringify(res, null, 2) + (res.file ? `\nDownload: ${BASE}/out/${res.file}` : '');
+}
+
+async function setLog() {
+  const res = await post('/admin/log-level', { level: document.getElementById('logLevel').value, scope: document.getElementById('logScope').value || 'global' });
+  document.getElementById('logResult').textContent = JSON.stringify(res, null, 2);
+}
+
+async function loadTx() {
+  const txs = await api('/transactions');
+  document.querySelector('#txTable tbody').innerHTML = txs.slice(0, 25).map(t => {
+    const chain = t.events.map(e => e.state).join(' → ');
+    const badge = t.status === 'DELIVERED' ? 'ok' : (t.status === 'FAILED' ? 'warn' : '');
+    const art = (t.artifacts ?? []).map(a => a.file ? `<a href="${BASE}/out/${a.file.split(/[\\\\/]/).pop()}" target="_blank">${a.channel}</a>` : a.channel).join(' ');
+    return `<tr><td><a href="${BASE}/api/v1/audit/${t.id}" target="_blank">${t.id}</a><br>${art}</td><td>${t.kind}</td><td>${t.templateId} v${t.templateVersion}</td><td><span class="badge ${badge}">${t.status}</span></td><td>${t.deliveredVia ?? '—'}</td><td class="muted">${chain}</td><td class="muted">${t.ledger ? t.ledger.hash.slice(0, 16) + '…' : '—'}</td></tr>`;
+  }).join('');
+}
+init();
+</script>
+</body>
+</html>

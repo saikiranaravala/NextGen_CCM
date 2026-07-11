@@ -1,0 +1,28 @@
+:root { --brand: #1a3c6e; --bg: #f5f7fa; --card: #ffffff; --border: #d9e0ea; --text: #1c2733; --muted: #5c6b7d; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+header { background: var(--brand); color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 24px; }
+header h1 { font-size: 18px; margin: 0; }
+header nav a { color: #cfe0f5; text-decoration: none; margin-right: 16px; font-size: 14px; }
+header nav a.active, header nav a:hover { color: #fff; text-decoration: underline; }
+main { padding: 24px; max-width: 1100px; margin: 0 auto; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; margin-bottom: 18px; }
+.card h2 { margin-top: 0; font-size: 16px; color: var(--brand); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid var(--border); padding: 6px 8px; text-align: left; }
+th { color: var(--muted); font-weight: 600; }
+button { background: var(--brand); color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; font-size: 13px; cursor: pointer; }
+button.secondary { background: #e8eef6; color: var(--brand); }
+button:disabled { opacity: 0.5; cursor: default; }
+input, select, textarea { font: inherit; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; width: 100%; }
+textarea { min-height: 90px; }
+label { font-size: 12px; color: var(--muted); display: block; margin: 10px 0 4px; }
+.row { display: flex; gap: 16px; flex-wrap: wrap; }
+.row > div { flex: 1; min-width: 260px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; background: #e8eef6; color: var(--brand); }
+.badge.ok { background: #e2f5e8; color: #1e7d3f; }
+.badge.warn { background: #fdecec; color: #b3261e; }
+pre { background: #f0f3f8; padding: 10px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+.locked { background: #f6f6f6; color: #888; border-left: 3px solid #bbb; padding: 8px; margin: 6px 0; font-size: 13px; }
+.editable { border-left: 3px solid var(--brand); padding: 8px; margin: 6px 0; }
+.muted { color: var(--muted); font-size: 12px; }

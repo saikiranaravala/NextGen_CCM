@@ -1,0 +1,662 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>NextGen-CCM — Complete Tutorial</title>
+<style>
+  :root{
+    --ink:#0A0F1E; --ink-2:#101729; --paper:#F1EEE3; --muted:#7E8AA3;
+    --cyan:#3BC3E0; --magenta:#D6367B; --brass:#E3B93F; --green:#3FBF7A;
+    --app-brand:#1a3c6e; --app-bg:#f5f7fa; --app-card:#ffffff; --app-border:#d9e0ea; --app-text:#1c2733; --app-muted:#5c6b7d;
+    --mono:'Consolas','Cascadia Mono',ui-monospace,monospace;
+    --sans:'Segoe UI',system-ui,-apple-system,sans-serif;
+    --serif:Cambria,Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ink);color:var(--paper);font-family:var(--sans);overflow:hidden}
+  .stage{position:fixed;inset:0 0 96px 0;display:flex;align-items:center;justify-content:center}
+  .stage::before{content:'';position:absolute;inset:0;opacity:.045;
+    background-image:linear-gradient(var(--paper) 1px,transparent 1px),linear-gradient(90deg,var(--paper) 1px,transparent 1px);
+    background-size:72px 72px}
+
+  .scene{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:4vh 5vw;opacity:0;visibility:hidden;transition:opacity .6s ease;text-align:center}
+  .scene.active{opacity:1;visibility:visible}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--cyan);margin-bottom:16px}
+  .scene h1{font-weight:750;font-size:clamp(36px,6vw,80px);letter-spacing:-.02em;line-height:1.05;text-wrap:balance}
+  .scene h2{font-weight:700;font-size:clamp(24px,3.6vw,44px);letter-spacing:-.015em;line-height:1.1;text-wrap:balance}
+  .tagline{font-family:var(--serif);font-style:italic;font-size:clamp(15px,1.9vw,21px);color:var(--muted);margin-top:18px;max-width:60ch;line-height:1.55}
+
+  /* chapter title overlay inside a scene */
+  .chapcard{position:absolute;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:5;transition:opacity .55s ease;padding:0 8vw;text-align:center}
+  .chapcard.gone{opacity:0;pointer-events:none}
+  .chapcard .who{font-family:var(--serif);font-style:italic;color:var(--muted);margin-top:18px;font-size:clamp(14px,1.8vw,20px);max-width:56ch;line-height:1.55}
+
+  /* simulated browser window */
+  .win{width:min(940px,92vw);background:var(--app-bg);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.55);
+    overflow:hidden;text-align:left;color:var(--app-text);font-size:13.5px}
+  .winbar{display:flex;align-items:center;gap:8px;background:#e7ebf2;padding:9px 14px;border-bottom:1px solid var(--app-border)}
+  .winbar i{width:11px;height:11px;border-radius:50%;background:#c9d2df}
+  .winbar i:first-child{background:#e88}
+  .url{flex:1;background:#fff;border:1px solid var(--app-border);border-radius:6px;padding:4px 12px;font-family:var(--mono);font-size:11.5px;color:var(--app-muted)}
+  .apphead{background:var(--app-brand);color:#fff;padding:9px 18px;display:flex;gap:18px;align-items:center;font-size:13px}
+  .apphead b{font-size:14px}
+  .apphead span{color:#cfe0f5}
+  .apphead span.on{color:#fff;text-decoration:underline}
+  .winbody{padding:16px 18px;min-height:300px;position:relative}
+  .card{background:var(--app-card);border:1px solid var(--app-border);border-radius:8px;padding:12px 14px;margin-bottom:12px}
+  .card h3{font-size:12.5px;color:var(--app-brand);margin-bottom:8px}
+  .apptable{border-collapse:collapse;width:100%;font-size:12px}
+  .apptable th,.apptable td{border-bottom:1px solid var(--app-border);padding:5px 7px;text-align:left}
+  .apptable th{color:var(--app-muted)}
+  .abtn{display:inline-block;background:var(--app-brand);color:#fff;border-radius:6px;padding:6px 12px;font-size:12px;cursor:default}
+  .abtn.sec{background:#e8eef6;color:var(--app-brand)}
+  .ainput{background:#fff;border:1px solid var(--app-border);border-radius:6px;padding:6px 9px;font-size:12.5px;width:100%;color:var(--app-text);min-height:30px}
+  .badge{display:inline-block;padding:1px 8px;border-radius:9px;font-size:10.5px;background:#e8eef6;color:var(--app-brand)}
+  .badge.ok{background:#e2f5e8;color:#1e7d3f}
+  .badge.warn{background:#fdecec;color:#b3261e}
+  .lockrow{background:#f6f6f6;color:#888;border-left:3px solid #bbb;padding:6px 9px;margin:5px 0;font-size:12px}
+  .editrow{border-left:3px solid var(--app-brand);padding:6px 9px;margin:5px 0;font-size:12px;background:#fff}
+  .toast{position:absolute;right:18px;top:14px;background:#123c1f;color:#c9f2d6;border-radius:8px;padding:9px 14px;font-size:12px;
+    opacity:0;transform:translateY(-8px);transition:all .35s ease;z-index:4;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .toast.err{background:#4a1420;color:#f6c9d4}
+  .toast.on{opacity:1;transform:none}
+  .hl{transition:box-shadow .3s ease}
+  .hl.on{box-shadow:0 0 0 3px rgba(59,195,224,.65)!important;border-radius:6px}
+  .hidden{display:none}
+  .fade{opacity:0;transition:opacity .45s ease}
+  .fade.on{opacity:1}
+
+  /* mini pdf preview */
+  .pdf{width:150px;background:#fff;border:1px solid var(--app-border);border-radius:4px;padding:12px 10px;position:relative;overflow:hidden;
+    box-shadow:0 8px 22px rgba(0,0,0,.18);font-size:7.5px;color:#333;line-height:1.7}
+  .pdf::after{content:'DRAFT';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:26px;font-weight:700;color:rgba(180,180,180,.4);transform:rotate(-30deg)}
+  .pdf b{font-size:9px;color:var(--app-brand)}
+  .pdf .ln{height:4px;background:#e3e8ef;border-radius:2px;margin:4px 0}
+
+  /* terminal */
+  .term{width:min(860px,92vw);background:#0d1420;border:1px solid rgba(241,238,227,.18);border-radius:12px;overflow:hidden;
+    text-align:left;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+  .termbar{background:#161f31;padding:9px 14px;font-family:var(--mono);font-size:11.5px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .termbody{padding:16px 20px;font-family:var(--mono);font-size:clamp(10.5px,1.35vw,13px);line-height:1.75;min-height:320px;white-space:pre-wrap;color:#cfd8e6}
+  .t-c{color:var(--cyan)} .t-g{color:var(--green)} .t-m{color:var(--magenta)} .t-y{color:var(--brass)} .t-d{color:var(--muted)}
+
+  /* trace / compliance widgets */
+  .chain{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;margin:8px 0}
+  .chain span{border:1px solid var(--app-border);border-radius:12px;padding:3px 10px;color:var(--app-muted);background:#fff;transition:all .3s ease}
+  .chain span.lit{background:var(--app-brand);color:#fff;border-color:var(--app-brand)}
+  .chain span.lit.bad{background:#b3261e;border-color:#b3261e}
+
+  /* cursor */
+  #cursor{position:fixed;z-index:40;width:22px;height:22px;pointer-events:none;opacity:0;
+    transition:left .55s cubic-bezier(.5,.1,.3,1),top .55s cubic-bezier(.5,.1,.3,1),opacity .3s}
+  #cursor svg{filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))}
+  #cursor .ring{position:absolute;inset:-9px;border:2px solid var(--cyan);border-radius:50%;opacity:0;transform:scale(.4)}
+  #cursor.click .ring{animation:ring .45s ease-out}
+  @keyframes ring{0%{opacity:1;transform:scale(.4)}100%{opacity:0;transform:scale(1.5)}}
+
+  /* caption bar */
+  .caption{position:fixed;left:0;right:0;bottom:58px;display:flex;justify-content:center;z-index:22;pointer-events:none;padding:0 16px}
+  .caption span{background:rgba(10,15,30,.88);border:1px solid rgba(241,238,227,.16);border-radius:8px;
+    padding:9px 18px;font-size:clamp(13px,1.7vw,16.5px);max-width:78ch;line-height:1.5;text-align:center;
+    opacity:0;transform:translateY(8px);transition:all .3s ease}
+  .caption span.on{opacity:1;transform:none}
+  .caption b{color:var(--cyan);font-weight:600}
+
+  /* chrome */
+  .chrome{position:fixed;left:0;right:0;bottom:0;padding:10px 22px 14px;display:flex;align-items:center;gap:14px;
+    background:linear-gradient(transparent,rgba(10,15,30,.95) 30%);z-index:20}
+  .btn{background:none;border:1px solid rgba(241,238,227,.35);color:var(--paper);width:36px;height:36px;border-radius:50%;
+    font-size:14px;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}
+  .btn:hover,.btn:focus-visible{border-color:var(--cyan);color:var(--cyan);outline:none}
+  .segs{display:flex;gap:5px;flex:1}
+  .seg{height:4px;flex:1;background:rgba(241,238,227,.18);border-radius:2px;cursor:pointer;overflow:hidden}
+  .seg i{display:block;height:100%;width:0;background:var(--cyan)}
+  .scene-label{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted);flex:none;min-width:210px;text-align:right}
+
+  /* poster + menu */
+  .poster{position:fixed;inset:0;z-index:30;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .6s ease;padding:0 6vw;text-align:center}
+  .poster.hidden{opacity:0;pointer-events:none}
+  .poster h1{font-weight:750;font-size:clamp(30px,5vw,58px);letter-spacing:-.02em}
+  .poster p{font-family:var(--serif);font-style:italic;color:var(--muted);font-size:clamp(14px,1.8vw,19px)}
+  .playbtn{width:84px;height:84px;border-radius:50%;border:2px solid var(--cyan);background:rgba(59,195,224,.08);color:var(--cyan);
+    font-size:27px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .2s ease}
+  .playbtn:hover{transform:scale(1.07)}
+  .menu{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .menu button{background:var(--ink-2);border:1px solid rgba(241,238,227,.22);color:var(--paper);border-radius:20px;
+    padding:8px 16px;font-size:12.5px;cursor:pointer;font-family:var(--mono);letter-spacing:.04em}
+  .menu button:hover{border-color:var(--cyan);color:var(--cyan)}
+  .poster small{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--muted)}
+
+  @media (prefers-reduced-motion: reduce){
+    #cursor{transition:none}
+    .caption span,.toast,.fade,.chain span{transition:none}
+  }
+</style>
+
+<div class="stage" id="stage">
+
+  <!-- 0 · intro -->
+  <section class="scene" data-label="INTRODUCTION">
+    <p class="eyebrow">The complete tutorial</p>
+    <h1>NextGen-<span style="color:var(--cyan)">CCM</span><br>for every persona</h1>
+    <p class="tagline">Five chapters. Five roles. One platform — from designing a governed template to proving to a regulator exactly what was sent.</p>
+  </section>
+
+  <!-- 1 · DESIGNER -->
+  <section class="scene" data-label="CH.1 TEMPLATE DESIGNER">
+    <div class="chapcard"><p class="eyebrow">Chapter 1 · Template Designer / Business Analyst</p>
+      <h2>Design once. Publish governed.</h2>
+      <p class="who">“I need to build templates in a browser, preview them safely, and never wait on IT for a copy change.”</p>
+    </div>
+    <div class="win">
+      <div class="winbar"><i></i><i></i><i></i><div class="url">https://ccm-ui.example.com/designer.html</div></div>
+      <div class="apphead"><b>NextGen-CCM</b><span>Dashboard</span><span class="on">Designer</span><span>Content Author</span></div>
+      <div class="winbody">
+        <div class="toast" id="d-toast">✓ Saved as draft v2 — approval required</div>
+        <div class="toast err" id="d-403">✗ 403 — block ‘legal’ is locked (FR-1.3)</div>
+        <div class="card" id="d-list">
+          <h3>TEMPLATES</h3>
+          <table class="apptable"><tr><th>ID</th><th>Name</th><th>Version</th><th>Status</th><th></th></tr>
+            <tr><td>tpl_invoice</td><td>Customer Invoice</td><td id="d-ver">v1</td><td><span class="badge ok" id="d-status">approved</span></td><td><span class="abtn sec" id="d-edit">Edit</span></td></tr>
+          </table>
+        </div>
+        <div class="card hidden" id="d-editor">
+          <h3>CUSTOMER INVOICE — BLOCKS</h3>
+          <div class="lockrow">🔒 header — “ACME CORP — INVOICE” (locked)</div>
+          <div class="editrow hl" id="d-greet">✏️ greeting — “<span id="d-greet-txt">Dear {{name}},</span>”</div>
+          <div class="editrow">✏️ body — “Your invoice {{invoice_number}} … {{amount}} {{currency}}.”</div>
+          <div class="lockrow hl" id="d-legal">🔒 legal — “This is a legally required notice. Do not modify.”</div>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <span class="abtn" id="d-save">Save</span><span class="abtn sec" id="d-preview">Preview PDF</span><span class="abtn sec" id="d-approve">Approve</span>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:12px;align-items:flex-start">
+            <div class="pdf hidden fade" id="d-pdf"><b>ACME CORP — INVOICE</b><div class="ln" style="width:80%"></div><div class="ln"></div><div class="ln" style="width:65%"></div><div class="ln" style="width:90%"></div><div class="ln" style="width:40%"></div></div>
+            <div style="flex:1">
+              <h3 style="margin-top:2px">✨ CONVERSATIONAL AI EDIT (FR-7.4)</h3>
+              <div class="ainput hl" id="d-ai"></div>
+              <p class="fade" id="d-ai-res" style="font-size:11.5px;color:var(--app-muted);margin-top:8px">AI: Made the greeting bold. Saved as draft v3 — <b style="color:#1e7d3f">locked blocks untouched</b>, approval required.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · AUTHOR -->
+  <section class="scene" data-label="CH.2 BUSINESS AUTHOR">
+    <div class="chapcard"><p class="eyebrow">Chapter 2 · Business Author (claims, care, relationship teams)</p>
+      <h2>Write a letter. Stay compliant without trying.</h2>
+      <p class="who">“I just need to send this customer a proper letter — today — without breaking any rules I don’t know about.”</p>
+    </div>
+    <div class="win">
+      <div class="winbar"><i></i><i></i><i></i><div class="url">https://ccm-ui.example.com/author.html</div></div>
+      <div class="apphead"><b>NextGen-CCM</b><span>Dashboard</span><span>Designer</span><span class="on">Content Author</span></div>
+      <div class="winbody">
+        <div class="toast" id="a-toast">✓ Queued — tx_ccm_84f2… · audit trail attached</div>
+        <div class="card">
+          <h3>SHELL: AD-HOC LETTER (governed)</h3>
+          <div class="lockrow">🔒 ACME CORP — Customer Care (locked letterhead)</div>
+          <div class="editrow">✏️ Dear Jane Doe,</div>
+          <div class="editrow hl" id="a-body" style="min-height:64px"><span id="a-body-txt" style="font-family:var(--serif)"></span><span id="a-caret" class="hidden" style="display:inline-block;width:7px;height:13px;background:var(--app-brand);vertical-align:-2px"></span></div>
+          <div class="lockrow">🔒 Recorded for compliance purposes. (locked footer)</div>
+        </div>
+        <div class="card">
+          <h3>TOOLS</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span class="abtn sec hl" id="a-para">📚 Insert: “Goodwill credit” (approved)</span>
+            <span class="abtn sec hl" id="a-mic">🎤 Dictate</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <div class="ainput hl" id="a-intent" style="flex:1"></div>
+            <span class="abtn sec" id="a-aibtn">✨ AI Draft</span>
+          </div>
+          <p style="font-size:11px;color:var(--app-muted);margin-top:6px">AI drafting is grounded in the approved paragraph library only (FR-7.1).</p>
+          <div style="margin-top:10px"><span class="abtn hl" id="a-send">Send letter (governed dispatch)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · OPERATIONS -->
+  <section class="scene" data-label="CH.3 PRODUCTION OPS">
+    <div class="chapcard"><p class="eyebrow">Chapter 3 · Production / Print Operations</p>
+      <h2>A million documents. One damaged tray. Zero panic.</h2>
+      <p class="who">“Batches must hit the print window — and when the inserter chews 15 envelopes, I reprint exactly those 15.”</p>
+    </div>
+    <div class="win">
+      <div class="winbar"><i></i><i></i><i></i><div class="url">https://ccm-ui.example.com/  ·  Dashboard</div></div>
+      <div class="apphead"><b>NextGen-CCM</b><span class="on">Dashboard</span><span>Designer</span><span>Content Author</span></div>
+      <div class="winbody">
+        <div class="toast" id="o-toast">✓ Reprint ready — job_9f31.reprint.pdf (records 2, 5)</div>
+        <div class="card">
+          <h3>RUN BATCH (FR-3.1)</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="badge">tpl_invoice</span><span class="badge">driver: invoices.csv</span>
+            <span class="badge">report fields: customer_id, name, invoice_number</span>
+            <span class="abtn hl" id="o-run">Run batch</span>
+          </div>
+          <p class="fade" id="o-runres" style="font-family:var(--mono);font-size:11.5px;margin-top:8px;color:#1e7d3f">✓ job_9f31 complete — 10 records → job_9f31.pdf (10 pages) + report file</p>
+        </div>
+        <div class="card hidden fade" id="o-report">
+          <h3>REPORT FILE (FR-3.5) — page ranges map every customer to the print stream</h3>
+          <table class="apptable">
+            <tr><th>#</th><th>customer_id</th><th>name</th><th>invoice</th><th>pages</th></tr>
+            <tr><td>1</td><td>cust_002</td><td>John Smith</td><td>INV-2026-002</td><td>2–2</td></tr>
+            <tr id="o-row2" class="hl"><td>2</td><td>cust_003</td><td>Maria Garcia</td><td>INV-2026-003</td><td>3–3</td></tr>
+            <tr id="o-row5" class="hl"><td>5</td><td>cust_006</td><td>Sara Jones</td><td>INV-2026-006</td><td>6–6</td></tr>
+          </table>
+        </div>
+        <div class="card hidden fade" id="o-reprint">
+          <h3>SELECTIVE REPRINT (FR-3.6)</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="ainput hl" id="o-recs" style="width:130px"></div>
+            <span class="abtn hl" id="o-repbtn">Reprint</span>
+            <span style="font-size:11px;color:var(--app-muted)">no full-batch rerun · audit-logged</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · DEVELOPER -->
+  <section class="scene" data-label="CH.4 DEVELOPER">
+    <div class="chapcard"><p class="eyebrow">Chapter 4 · Developer / IT Architect</p>
+      <h2>One endpoint. Idempotent. Failover included.</h2>
+      <p class="who">“Give me a clean API that never double-sends, and I’ll wire the whole enterprise to it.”</p>
+    </div>
+    <div class="term">
+      <div class="termbar"><i style="width:10px;height:10px;border-radius:50%;background:#e88;display:inline-block"></i> developer@enterprise — POST /api/v1/communications/on-demand</div>
+      <div class="termbody" id="t-out"></div>
+    </div>
+  </section>
+
+  <!-- 5 · COMPLIANCE -->
+  <section class="scene" data-label="CH.5 COMPLIANCE OFFICER">
+    <div class="chapcard"><p class="eyebrow">Chapter 5 · Compliance &amp; Risk Officer</p>
+      <h2>“Prove what you sent.” — Gladly.</h2>
+      <p class="who">“When the regulator asks about one letter from two years ago, I need the answer in minutes, not a discovery project.”</p>
+    </div>
+    <div class="win">
+      <div class="winbar"><i></i><i></i><i></i><div class="url">https://ccm-ui.example.com/  ·  Track &amp; Trace</div></div>
+      <div class="apphead"><b>NextGen-CCM</b><span class="on">Dashboard</span><span>Designer</span><span>Content Author</span></div>
+      <div class="winbody">
+        <div class="card">
+          <h3>LIFECYCLE — tx_ccm_84f2 · cust_001 · tpl_invoice v3 (FR-6.1)</h3>
+          <div class="chain" id="c-chain">
+            <span>TRIGGERED</span><span>COMPOSED</span><span>DISPATCHED</span><span>GATEWAY HANDSHAKE</span><span>DELIVERED</span><span>READ</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>CRYPTOGRAPHIC LEDGER (FR-6.2)</h3>
+          <p style="font-family:var(--mono);font-size:11px;color:var(--app-muted)">sha256(template v3 + payload) = 9b1d…c2b1</p>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+            <span class="abtn sec hl" id="c-verify">Verify with original payload</span>
+            <span class="badge ok hidden fade" id="c-ok">✓ valid: true — unaltered</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+            <span class="abtn sec hl" id="c-tamper">Verify with tampered amount ($999.99)</span>
+            <span class="badge warn hidden fade" id="c-bad">✗ valid: false — hash mismatch</span>
+          </div>
+        </div>
+        <div class="card hidden fade" id="c-arch">
+          <h3>SYNCHRONOUS ARCHIVE (FR-5.1)</h3>
+          <table class="apptable"><tr><th>tx</th><th>customer</th><th>channel</th><th>rendition</th><th>sha256</th></tr>
+            <tr><td>tx_ccm_84f2</td><td>cust_001</td><td>EMAIL</td><td>tx_ccm_84f2.html</td><td style="font-family:var(--mono)">e4d3…7a90</td></tr></table>
+          <p style="font-size:11px;color:var(--app-muted);margin-top:6px">Archived in the same flow as delivery — no window where a document was sent but not archived.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · outro -->
+  <section class="scene" data-label="RECAP">
+    <p class="eyebrow">One platform, every role</p>
+    <h2>Designers publish. Authors write. Ops reprints.<br>Developers integrate. Compliance proves.</h2>
+    <p class="tagline">Full curriculum: 15 consultant training modules in docs/training — with exercises and knowledge checks for each persona. NextGen-CCM · launching Q3 2027.</p>
+  </section>
+
+</div>
+
+<div id="cursor"><div class="ring"></div><svg width="22" height="22" viewBox="0 0 22 22"><path d="M3 2 L3 17 L7.5 13.5 L10.5 20 L13 19 L10 12.7 L16 12.2 Z" fill="#F1EEE3" stroke="#0A0F1E" stroke-width="1.2"/></svg></div>
+<div class="caption"><span id="cap"></span></div>
+
+<div class="poster" id="poster">
+  <h1>NextGen-<span style="color:var(--cyan)">CCM</span> — The Complete Tutorial</h1>
+  <p>A guided working demo for all five personas · ~2½ minutes</p>
+  <button class="playbtn" id="playBtn" aria-label="Play tutorial">▶</button>
+  <div class="menu" id="menu">
+    <button data-ch="1">1 · Designer</button><button data-ch="2">2 · Author</button><button data-ch="3">3 · Ops</button>
+    <button data-ch="4">4 · Developer</button><button data-ch="5">5 · Compliance</button>
+  </div>
+  <small>SPACE PLAY/PAUSE · ← → CHAPTERS</small>
+</div>
+
+<div class="chrome">
+  <button class="btn" id="ppBtn" aria-label="Play or pause">⏸</button>
+  <button class="btn" id="rsBtn" aria-label="Restart">↺</button>
+  <button class="btn" id="muteBtn" aria-label="Mute music">🔊</button>
+  <div class="segs" id="segs"></div>
+  <div class="scene-label" id="sceneLabel"></div>
+</div>
+
+<script>
+/* Generated ambient soundtrack — Web Audio, no external assets.
+   Dm–Bb–F–C pad + sub bass + sparse pentatonic plucks. Starts on user gesture. */
+window.music = (() => {
+  let ctx = null, master, lp, started = false, muted = false, timer = null, step = 0;
+  const CHORDS = [
+    { pad: [146.83, 174.61, 220.00], bass: 73.42 },  // Dm
+    { pad: [116.54, 174.61, 233.08], bass: 58.27 },  // Bb
+    { pad: [174.61, 220.00, 261.63], bass: 87.31 },  // F
+    { pad: [130.81, 164.81, 196.00], bass: 65.41 },  // C
+  ];
+  const PENT = [293.66, 349.23, 392.00, 440.00, 523.25, 587.33]; // D minor pentatonic
+  const BAR = 8; // seconds per chord
+
+  function env(g, t, a, hold, r, peak) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + a);
+    g.gain.setValueAtTime(peak, t + a + hold);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + a + hold + r);
+  }
+  function tone(freq, type, t, a, hold, r, peak, detune = 0) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.value = freq; o.detune.value = detune;
+    env(g, t, a, hold, r, peak);
+    o.connect(g); g.connect(lp);
+    o.start(t); o.stop(t + a + hold + r + 0.1);
+  }
+  function bar(t, c) {
+    for (const f of c.pad) { tone(f, 'sawtooth', t, 2.6, BAR - 4.6, 2.2, 0.028, -6); tone(f, 'sawtooth', t, 2.6, BAR - 4.6, 2.2, 0.028, 6); }
+    tone(c.bass, 'triangle', t, 1.2, BAR - 3.2, 2.0, 0.09);
+    // sparse plucks
+    for (let k = 0; k < 3; k++) {
+      if (Math.random() < 0.75) {
+        const f = PENT[Math.random() * PENT.length | 0];
+        tone(f, 'sine', t + 1 + Math.random() * (BAR - 3), 0.01, 0.05, 1.6, 0.05);
+      }
+    }
+  }
+  function loop() {
+    const ahead = ctx.currentTime + 0.15;
+    bar(ahead, CHORDS[step % CHORDS.length]);
+    step++;
+  }
+  return {
+    start() {
+      if (started) { this.resume(); return; }
+      try {
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9;
+        lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+        lp.connect(master); master.connect(ctx.destination);
+        started = true; loop(); timer = setInterval(loop, BAR * 1000);
+      } catch (e) { /* audio unavailable — film plays silently */ }
+    },
+    pause() { if (ctx && ctx.state === 'running') ctx.suspend(); },
+    resume() { if (ctx && ctx.state === 'suspended') ctx.resume(); },
+    toggleMute() {
+      muted = !muted;
+      if (master) master.gain.value = muted ? 0 : 0.9;
+      return muted;
+    },
+  };
+})();
+</script>
+
+<script>
+(() => {
+  const scenes = [...document.querySelectorAll('.scene')];
+  const cursor = document.getElementById('cursor');
+  const cap = document.getElementById('cap');
+  const segsBox = document.getElementById('segs');
+  const label = document.getElementById('sceneLabel');
+  const ppBtn = document.getElementById('ppBtn');
+  const poster = document.getElementById('poster');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SP = reduced ? .2 : 1; // global speed factor
+
+  const segs = scenes.map((s, i) => {
+    const seg = document.createElement('div');
+    seg.className = 'seg'; seg.innerHTML = '<i></i>';
+    seg.addEventListener('click', () => go(i));
+    segsBox.appendChild(seg);
+    return seg.firstChild;
+  });
+
+  let idx = -1, playing = false, gen = 0;
+
+  // pausable wait
+  function wait(ms) {
+    ms *= SP;
+    const g = gen;
+    return new Promise(res => {
+      let last = performance.now(), acc = 0;
+      (function tick(t) {
+        if (g !== gen) return res(false);
+        if (playing) acc += t - last;
+        last = t;
+        if (acc >= ms) return res(true);
+        requestAnimationFrame(tick);
+      })(last);
+    });
+  }
+  const alive = g => g === gen;
+
+  function q(sel) { return scenes[idx].querySelector(sel); }
+
+  async function moveTo(sel, g) {
+    const el = q(sel); if (!el || !alive(g)) return;
+    const r = el.getBoundingClientRect();
+    cursor.style.opacity = 1;
+    cursor.style.left = (r.left + r.width * .55) + 'px';
+    cursor.style.top = (r.top + r.height * .6) + 'px';
+    await wait(620);
+  }
+  async function click(sel, g) {
+    await moveTo(sel, g); if (!alive(g)) return;
+    cursor.classList.remove('click'); void cursor.offsetWidth; cursor.classList.add('click');
+    const el = q(sel); if (el) { el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 700); }
+    await wait(420);
+  }
+  async function typeInto(sel, text, g, cps = 38) {
+    const el = q(sel); if (!el || !alive(g)) return;
+    for (let c = 1; c <= text.length; c++) {
+      if (!alive(g)) return;
+      el.textContent = text.slice(0, c);
+      await wait(1000 / cps);
+    }
+  }
+  async function say(text, g, hold = 2200) {
+    if (!alive(g)) return;
+    cap.classList.remove('on');
+    await wait(200); if (!alive(g)) return;
+    cap.innerHTML = text; cap.classList.add('on');
+    await wait(hold);
+  }
+  const show = sel => { const el = q(sel); if (el) { el.classList.remove('hidden'); void el.offsetWidth; el.classList.add('on'); } };
+  const toast = async (sel, g, ms = 2200) => { const el = q(sel); if (!el) return; el.classList.add('on'); await wait(ms); el.classList.remove('on'); };
+  const dropCard = async g => { const c = q('.chapcard'); if (c) { c.classList.add('gone'); await wait(600); } };
+
+  /* ---------------- chapter scripts ---------------- */
+  const scripts = [
+
+    // 0 intro
+    async g => { await say('Welcome to <b>NextGen-CCM</b> — this tutorial walks every role through the working product.', g, 3400); },
+
+    // 1 designer
+    async g => {
+      await say('<b>Chapter 1 — Template Designer.</b> Everything happens in the browser. No desktop client.', g, 3000);
+      await dropCard(g);
+      await say('Open the <b>Designer</b> and pick a template from the portfolio.', g, 1600);
+      await click('#d-edit', g); if (!alive(g)) return;
+      q('#d-list').classList.add('hidden'); show('#d-editor'); q('#d-editor').classList.remove('fade');
+      await say('Blocks marked 🔒 are <b>locked</b> — legal owns them, and the server enforces it. Editable blocks are yours.', g, 3200);
+      await click('#d-greet', g);
+      q('#d-greet-txt').textContent = '';
+      await typeInto('#d-greet-txt', 'Hello {{name}}, thanks for being with us!', g);
+      await say('Change the greeting, then <b>Save</b> — every save creates a new draft version with full history.', g, 2200);
+      await click('#d-save', g);
+      q('#d-ver').textContent = 'v2'; q('#d-status').textContent = 'draft'; q('#d-status').className = 'badge';
+      await toast('#d-toast', g, 2000);
+      await say('<b>Preview</b> renders a real PDF — automatically watermarked DRAFT in non-production.', g, 2000);
+      await click('#d-preview', g); show('#d-pdf');
+      await wait(1400);
+      await say('Or skip the JSON entirely: tell the <b>AI</b> what you want (FR-7.4).', g, 2000);
+      await click('#d-ai', g);
+      await typeInto('#d-ai', 'make the greeting bold', g);
+      await wait(500); show('#d-ai-res');
+      await say('The AI edits <b>only unlocked blocks</b> — try to touch the legal footer and the server answers 403.', g, 2600);
+      await click('#d-legal', g); await toast('#d-403', g, 2200);
+      await say('Finish with <b>Approve</b> — only approved versions can ever reach a customer.', g, 2000);
+      await click('#d-approve', g);
+      q('#d-status').textContent = 'approved'; q('#d-status').className = 'badge ok';
+      await wait(1200);
+    },
+
+    // 2 author
+    async g => {
+      await say('<b>Chapter 2 — Business Author.</b> A word-processor-simple studio inside governed shells (FR-1.9).', g, 3000);
+      await dropCard(g);
+      await say('Letterhead and legal footer are locked. You write only in the editable zone.', g, 2400);
+      await say('Insert pre-approved paragraphs from the compliance library…', g, 1600);
+      await click('#a-para', g);
+      q('#a-body-txt').textContent = 'As a gesture of goodwill, we have applied a credit to your account. ';
+      await wait(900);
+      await say('…dictate with your voice 🎤 …', g, 1400);
+      await click('#a-mic', g); q('#a-caret').classList.remove('hidden');
+      await typeInto('#a-body-txt', 'As a gesture of goodwill, we have applied a credit to your account. It will appear on your next statement.', g, 55);
+      q('#a-caret').classList.add('hidden');
+      await say('…or describe the intent and let <b>AI draft it — grounded only in approved language</b> (FR-7.1).', g, 2400);
+      await click('#a-intent', g);
+      await typeInto('#a-intent', 'apologize for the billing error and offer a goodwill credit', g);
+      await click('#a-aibtn', g); await wait(700);
+      await say('Then <b>Send</b>. The letter routes through approval policy and the same delivery engine as everything else — with a full audit trail.', g, 2800);
+      await click('#a-send', g); await toast('#a-toast', g, 2400);
+    },
+
+    // 3 ops
+    async g => {
+      await say('<b>Chapter 3 — Production Operations.</b> Batch runs, report files, and surgical reprints.', g, 3000);
+      await dropCard(g);
+      await say('Pick the template, point at the <b>driver file</b>, choose the report fields — and run.', g, 2400);
+      await click('#o-run', g); await wait(900); show('#o-runres');
+      await say('Ten records become one merged print PDF — plus a <b>report file</b> mapping every customer to exact page ranges (FR-3.5).', g, 2800);
+      show('#o-report'); await wait(1400);
+      await say('The inserter damaged two envelopes? Look them up in the report and reprint <b>exactly those records</b> (FR-3.6).', g, 2800);
+      show('#o-reprint');
+      await click('#o-recs', g); await typeInto('#o-recs', '2, 5', g);
+      await click('#o-repbtn', g);
+      q('#o-row2').classList.add('on'); q('#o-row5').classList.add('on');
+      await toast('#o-toast', g, 2400);
+      await say('No batch rerun. No re-composition risk. Audit-logged. That’s the whole workflow.', g, 2400);
+    },
+
+    // 4 developer
+    async g => {
+      await say('<b>Chapter 4 — Developer.</b> One REST endpoint drives everything: <b>POST /communications/on-demand</b>.', g, 3200);
+      await dropCard(g);
+      const out = q('#t-out');
+      let tBuf = ''; out.innerHTML = '';
+      // typewriter that appends HTML tags atomically (only visible text is "typed")
+      const T = async (s, ms = 16) => {
+        for (const tok of s.split(/(<[^>]+>)/)) {
+          if (!alive(g)) return;
+          if (tok.startsWith('<')) { tBuf += tok; out.innerHTML = tBuf; }
+          else for (const ch of tok) { if (!alive(g)) return; tBuf += ch; out.innerHTML = tBuf; await wait(ms); }
+        }
+      };
+      const P = async s => { if (alive(g)) { tBuf += s; out.innerHTML = tBuf; await wait(300); } };
+      await T('<span class="t-g">$</span> curl -X POST …/communications/on-demand \\\n    -d \'{ "template_id": "tpl_invoice", "idempotency_key": "inv-2026-101",\n          "recipient": { "email": "jane@example.com",\n            "preferences": { "preferred_channel": "EMAIL", "fallback_channel": "SMS" } } }\'\n');
+      await P('<span class="t-c">202 Accepted</span>  { "transaction_id": "tx_ccm_84f2", "delivered_via": "EMAIL",\n                 "audit_trail_url": "/api/v1/audit/tx_ccm_84f2" }\n\n');
+      await say('Retry the same call — the <b>idempotency key</b> guarantees no duplicate send.', g, 2200);
+      await T('<span class="t-g">$</span> curl -X POST …  <span class="t-d"># same idempotency_key</span>\n');
+      await P('<span class="t-y">200 OK</span>        { "transaction_id": "tx_ccm_84f2", <span class="t-y">"replayed": true</span> }\n\n');
+      await say('And when a channel bounces, the journey <b>fails over automatically</b> — same content, next channel.', g, 2400);
+      await T('<span class="t-g">$</span> curl -X POST …  <span class="t-d"># recipient: bounce@example.com</span>\n');
+      await P('<span class="t-c">202 Accepted</span>  { <span class="t-m">"EMAIL": "failed"</span> → <span class="t-c">"delivered_via": "SMS"</span> }\n');
+      await say('Batch, hooks at every pipeline stage, runtime log levels, custom connectors — all on the same API surface.', g, 3000);
+    },
+
+    // 5 compliance
+    async g => {
+      await say('<b>Chapter 5 — Compliance Officer.</b> The regulator asks: “prove what you sent cust_001 in July.”', g, 3200);
+      await dropCard(g);
+      await say('Step one: the full <b>lifecycle trace</b> — every state transition, timestamped (FR-6.1).', g, 2200);
+      const chips = [...q('#c-chain').children];
+      for (const c of chips) { if (!alive(g)) return; c.classList.add('lit'); await wait(340); }
+      await say('Step two: the <b>cryptographic ledger</b>. Re-verify the original template + payload hash (FR-6.2).', g, 2400);
+      await click('#c-verify', g); show('#c-ok'); await wait(1200);
+      await say('And if anyone alters so much as the amount — the hash refuses.', g, 1800);
+      await click('#c-tamper', g); show('#c-bad'); await wait(1200);
+      await say('Step three: the <b>synchronous archive</b> — the exact rendition, stored in the same flow it was sent (FR-5.1).', g, 2400);
+      show('#c-arch'); await wait(1600);
+      await say('Minutes, not months. That’s the compliance answer.', g, 2200);
+    },
+
+    // 6 outro
+    async g => {
+      await say('Every persona, one governed platform. Explore the full 15-module training curriculum in <b>docs/training</b>.', g, 4000);
+    },
+  ];
+
+  /* ---------------- player ---------------- */
+  async function runScene(i) {
+    const g = gen;
+    segs.forEach((b, k) => b.style.width = k < i ? '100%' : '0');
+    try { await scripts[i](g); } catch (e) { /* aborted */ }
+    if (!alive(g)) return;
+    segs[i].style.width = '100%';
+    await wait(900);
+    if (!alive(g)) return;
+    if (i + 1 < scenes.length) go(i + 1);
+    else { playing = false; ppBtn.textContent = '▶'; window.music.pause(); window.__ccmDone = true; }
+  }
+
+  function go(i) {
+    gen++;
+    idx = i;
+    cursor.style.opacity = 0;
+    cap.classList.remove('on');
+    scenes.forEach((s, k) => {
+      s.classList.toggle('active', k === i);
+      // reset chapter card on re-entry
+      const c = s.querySelector('.chapcard'); if (c && k === i) c.classList.remove('gone');
+    });
+    label.textContent = (i + 1) + ' / ' + scenes.length + ' · ' + scenes[i].dataset.label;
+    runScene(i);
+  }
+
+  function play() { playing = true; ppBtn.textContent = '⏸'; window.music.start(); window.music.resume(); if (idx === -1) go(0); }
+  function pause() { playing = false; ppBtn.textContent = '▶'; window.music.pause(); }
+
+  document.getElementById('playBtn').addEventListener('click', () => { poster.classList.add('hidden'); play(); });
+  document.getElementById('menu').addEventListener('click', e => {
+    const ch = e.target.dataset.ch; if (!ch) return;
+    poster.classList.add('hidden'); playing = true; ppBtn.textContent = '⏸'; go(+ch);
+  });
+  ppBtn.addEventListener('click', () => playing ? pause() : play());
+  document.getElementById('rsBtn').addEventListener('click', () => { playing = true; ppBtn.textContent = '⏸'; go(0); });
+  addEventListener('keydown', e => {
+    if (e.key === ' ') { e.preventDefault();
+      if (!poster.classList.contains('hidden')) { poster.classList.add('hidden'); play(); }
+      else playing ? pause() : play(); }
+    if (e.key === 'ArrowRight' && idx < scenes.length - 1) { playing = true; go(idx + 1); }
+    if (e.key === 'ArrowLeft' && idx > 0) { playing = true; go(idx - 1); }
+  });
+
+  document.getElementById('muteBtn').addEventListener('click', e => {
+    e.target.textContent = window.music.toggleMute() ? '🔇' : '🔊';
+  });
+
+  scenes[0].classList.add('active'); // first frame behind poster
+  label.textContent = '1 / ' + scenes.length + ' · ' + scenes[0].dataset.label;
+
+  // Record mode: ?autoplay=1 skips the poster (music is muxed separately when rendering to MP4)
+  if (new URLSearchParams(location.search).get('autoplay') === '1') {
+    poster.classList.add('hidden'); play();
+  }
+})();
+</script>
