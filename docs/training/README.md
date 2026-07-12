@@ -18,6 +18,8 @@ Each module maps to one functional area of the PRD. Modules follow the same stru
 
 FR codes (e.g., FR-1.6) always refer to `PRD.md` §3.x. When a client asks "can the product do X?", find the FR — if there is no FR, it is not a committed capability.
 
+For a hands-on, screenshot-illustrated companion to these modules, see the [Persona Training Tutorial](tutorial.md) — 27 worked scenarios on the reference MVP, one track per persona (screenshots in `images/`). A self-contained HTML edition with embedded screenshots is at [`tutorial.html`](tutorial.html).
+
 ---
 
 ## Learning Paths
